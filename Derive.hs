@@ -1,8 +1,10 @@
 module Diff where
 
 data Polynomial = Add | Sub | Mul | Div | Pow
+    deriving Eq
 
 data Fomula a = Opr Polynomial (Fomula a) (Fomula a) | X | Otr Double
+    deriving Eq
 
 instance Show Polynomial where
     show Add = "+"
@@ -32,7 +34,7 @@ instance Derive (Fomula a) where
     derive (Opr Add f g) = Opr Add (derive f) (derive g)
     derive (Opr Sub f g) = Opr Sub (derive f) (derive g)
     derive (Opr Mul f g) = Opr Add (Opr Mul (derive f) g) (Opr Mul f (derive g))
-    derive (Opr Div f g) = Opr Div (Opr Sub (Opr Mul f g) (Opr Mul f (derive g))) (Opr Pow g (Otr 2))
+    derive (Opr Div f g) = Opr Div (Opr Sub (Opr Mul (derive f) g) (Opr Mul f (derive g))) (Opr Pow g (Otr 2))
     derive (Opr Pow f g) = Opr Mul (Opr Mul g (Opr Pow f (Opr Sub g (Otr 1)))) (derive f)
 
 instance Num (Fomula a) where
@@ -83,6 +85,11 @@ optimization (Opr Mul (Otr x) (Opr Mul f (Otr y))) = Opr Mul (Otr (x * y)) (opti
 optimization (Opr Mul (Opr Mul (Otr y) f) (Otr x)) = Opr Mul (Otr (x * y)) (optimization f)
 optimization (Opr Mul (Opr Mul f (Otr y)) (Otr x)) = Opr Mul (Otr (x * y)) (optimization f)
 optimization (Opr f x y) = Opr f (optimization x) (optimization y)
+
+optimize fomula = optimize' fomula $ optimization fomula
+    where optimize' old new = if old == new
+                then new
+                else optimize' new $ optimization new
 
 execute fomula var = exec fomula
     where
